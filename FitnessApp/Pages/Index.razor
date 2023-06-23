@@ -1,0 +1,155 @@
+﻿@page "/"
+@using EntityFramework.Entities;
+@using FitnessApp.Data;
+@inject UserProgressService UserProgressService
+@inject NavigationManager NavigationManager
+
+@if (userProgress != null)
+{
+    <h4 style="display:inline-block;margin-right:10px;">Select week:</h4>
+    <div class="input-group">
+        <select class="form-select" @onchange="WeekChanged" value="@selectedWeek">
+            <option value="">-- Select --</option>
+            @foreach (var workout in userProgress.Workouts.GroupBy(x => x.Week))
+            {
+                <option value="@workout.Key">@workout.Key</option>
+            }
+        </select>
+    </div>
+
+    @if (workouts != null && workouts.Any())
+    {
+        <div class="accordion" id="accordionExample">
+
+            @foreach (var workout in workouts)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#@workout.Week-@workout.Day" aria-expanded="true" aria-controls="@workout.Week-@workout.Day">
+                            Week @workout.Week - Day @workout.Day - @if(@workout.Date.HasValue)
+                            {
+                                @workout.Date.Value.ToString("dd-MM-yyyy")
+                            }
+                            else
+                            {
+                                <text>Todo</text>
+                            }
+                        </button>
+                    </h2>
+                    <div id="@workout.Week-@workout.Day" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                        <div class="accordion-body">
+                            <input style="display:inline-block;" type="date" min="0" @bind="@workout.Date" />
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover" style="margin-bottom:30px">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Exercise</th>
+                                            <th scope="col">Sets</th>
+                                            <th scope="col">Reps</th>
+                                            <th scope="col">RPE/%</th>
+                                            <th scope="col">Sets Done</th>
+                                            <th scope="col">Reps Done</th>
+                                            <th scope="col">Weight Done</th>
+                                            <th scope="col">Previous</th>
+                                            <th scope="col">Comment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var exercise in workout.Exercises)
+                                        {
+                                            <tr>
+                                                <td>@exercise.Excercise.Name</td>
+                                                <td style="text-align:center">@exercise.Sets</td>
+                                                <td style="text-align:center">@exercise.Reps</td>
+                                                <td style="text-align:center">@exercise.RPE</td>
+                                                <td><input class="form-control" type="number" min="0" @bind="@exercise.SetsDone" /></td>
+                                                <td><input class="form-control" type="number" min="0" style="min-width:50px" @bind="@exercise.RepsDone" /></td>
+                                                <td><input class="form-control" type="number" min="0" @bind="@exercise.WeightDone" /></td>
+                                                <td style="text-align:center">@exercise.Reps</td>
+                                                <td><input class="form-control" type="text" @bind="@exercise.Comment" /></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save Progress</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div>
+        <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save Progress</button>
+        <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+    </div>
+}
+else
+{
+    <h4>Select a Fitness Program:</h4>
+    <div class="input-group">
+        <select class="form-select" @onchange="SelectedUserProgress">
+            <option value="">-- Select --</option>
+            @foreach (var userProgress in userProgresses)
+            {
+                <option value="@userProgress.Id">@userProgress.Name</option>
+            }
+        </select>
+    </div>
+}
+
+@code {
+    private int selectedUserProgressId;
+    private int selectedWeek;
+    private UserProgress? userProgress;
+    private List<UserProgress> userProgresses;
+    private List<WorkoutProgress> workouts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userProgresses = await UserProgressService.GetUserProgresses();
+    }
+
+    private void SelectedUserProgress(ChangeEventArgs e)
+    {
+        userProgress = UserProgressService.GetUserProgress(int.Parse(e.Value.ToString())).Result;
+        var week = userProgress.Workouts.OrderBy(x => x.Week).First(x => !x.Date.HasValue).Week;
+        selectedWeek = week;
+        GetWorkouts(week);
+    }
+
+    private void WeekChanged(ChangeEventArgs e)
+    {
+        GetWorkouts(Int32.TryParse(e.Value?.ToString(), out var week) ? week : null);
+    }
+
+    private void GetWorkouts(int? week)
+    {
+        if (!week.HasValue)
+        {
+            workouts = new List<WorkoutProgress>();
+        }
+        else
+        {
+            workouts = userProgress.Workouts.Where(x => x.Week == week).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveUserProgress()
+    {
+        if (userProgress != null)
+        {
+            await UserProgressService.UpdateUserProgress(userProgress);
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void Cancel()
+    {
+        userProgress = null;
+        NavigationManager.NavigateTo("/");
+    }
+}

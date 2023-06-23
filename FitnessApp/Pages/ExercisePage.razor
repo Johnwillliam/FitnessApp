@@ -1,0 +1,73 @@
+﻿@page "/exercises"
+@using EntityFramework.Context;
+@using EntityFramework.Entities;
+@using FitnessApp.Data;
+@inject ExerciseDescriptionService ExerciseService
+@inject UserProgressService UserProgressService
+@inject NavigationManager NavigationManager
+
+<h3>Exercise List</h3>
+
+<h4>Create New Exercise:</h4>
+
+<div class="input-group">
+    <div class="form-floating">
+        <input type="text" class="form-control" min="0" @bind="@exerciseName" />
+        <label for="floatingInputGroup1">Exercise Name</label>
+    </div>
+    <button class="btn btn-outline-secondary" @onclick="CreateExercise">Create</button>
+</div>
+
+<h4>All Exercises:</h4>
+@if (exerciseDescriptions != null && exerciseDescriptions.Any())
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Exercise Name</th>
+                <th>Max Weight Used</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exercise in exerciseDescriptions)
+            {
+                <tr>
+                    <td>@exercise.Name</td>
+                    <td>@exercise.MaxWeightUsed</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No exercises found.</p>
+}
+
+@code {
+    private List<ExerciseDescription> exerciseDescriptions;
+    private List<UserProgress> userProgressList;
+    private string exerciseName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        exerciseDescriptions = await ExerciseService.GetExercises();
+        foreach (var exercise in exerciseDescriptions)
+        {
+            var exercises = new FitnessAppContext().ExcerciseProgresses.Where(x => x.ExcerciseId == exercise.Id).ToList();
+            exercise.MaxWeightUsed = exercises.Any() ? exercises.Max(x => x.WeightDone) : 0;
+        }
+        userProgressList = await UserProgressService.GetUserProgresses();
+    }
+
+    private async Task CreateExercise()
+    {
+        if (!string.IsNullOrEmpty(exerciseName))
+        {
+            var exercise = new ExerciseDescription { Name = exerciseName };
+            await ExerciseService.AddExercise(exercise);
+            exerciseName = string.Empty;
+            NavigationManager.NavigateTo("/exercises");
+        }
+    }
+}
