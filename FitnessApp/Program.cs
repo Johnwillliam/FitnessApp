@@ -2,6 +2,7 @@ using Blazored.LocalStorage;
 using EntityFramework.Context;
 using EntityFramework.Entities;
 using FitnessApp.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Newtonsoft.Json;
@@ -10,16 +11,16 @@ var context = new FitnessAppContext();
 var databaseIsNew = !context.GetService<IDatabaseCreator>().CanConnect();
 context.Database.EnsureCreated();
 
-if(databaseIsNew)
+if (databaseIsNew)
 {
     LoadExercises();
     GenerateAdminUser();
 }
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddBlazoredLocalStorage();
 
 // Add services to the container.
+builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<FitnessProgramService>();
@@ -30,6 +31,13 @@ builder.Services.AddSingleton<FavoriteExerciseService>();
 builder.Services.AddScoped<Session>();
 
 var app = builder.Build();
+
+Host.CreateDefaultBuilder(args)
+        .ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -87,7 +95,7 @@ void LoadExercises()
                 // Deserialize the JSON to an Exercise object
                 var exercise = JsonConvert.DeserializeObject<ExerciseDescription>(exerciseJson);
 
-                if(exercise != null && !context.ExerciseDescriptions.Any(x => x.Name == exercise.Name))
+                if (exercise != null && !context.ExerciseDescriptions.Any(x => x.Name == exercise.Name))
                 {
                     context.ExerciseDescriptions.Add(exercise);
                 }
