@@ -13,6 +13,8 @@ namespace EntityFramework.Context
         public DbSet<UserProgress> UserProgresses { get; set; }
         public DbSet<FitnessWorkout> FitnessWorkout { get; set; }
         public DbSet<WorkoutProgress> WorkoutProgresses { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<FavoriteExercise> FavoriteExercises { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

@@ -1,0 +1,169 @@
+﻿@page "/userprogress"
+@using EntityFramework.Entities;
+@using FitnessApp.Data;
+@inject FitnessProgramService FitnessProgramService
+@inject UserProgressService UserProgressService
+@inject NavigationManager NavigationManager
+@inject ExerciseDescriptionService ExerciseDescriptionService
+@inject Session Sesssion
+
+<PageTitle>User Progress</PageTitle>
+
+<h3>User Progress</h3>
+
+@if (user == null)
+{
+    <h3>Please login</h3>
+}
+else
+{
+    @if (fitnessPrograms != null && fitnessPrograms.Any())
+    {
+        <h4>Select a Fitness Program:</h4>
+        <div class="input-group">
+            <select class="form-select" @bind="@selectedFitnessProgramId">
+                <option value="">-- Select --</option>
+                @foreach (var fitnessProgram in fitnessPrograms)
+                {
+                    <option value="@fitnessProgram.Id">@fitnessProgram.Name</option>
+                }
+            </select>
+
+            <button class="btn btn-outline-secondary" @onclick="GenerateUserProgress">Generate</button>
+        </div>
+
+        <h4>Select a User Progress:</h4>
+        <div class="input-group">
+            <select class="form-select" @bind="@selectedUserProgressId">
+                <option value="">-- Select --</option>
+                @foreach (var userProgress in userProgresses)
+                {
+                    <option value="@userProgress.Id">@userProgress.Name</option>
+                }
+            </select>
+
+            <button class="btn btn-outline-secondary" @onclick="SelectUserProgress">Select</button>
+        </div>
+
+        @if (userProgress != null)
+        {
+            <h4>Workouts</h4>
+            <div class="accordion" id="accordionExample">
+
+                @foreach (var workout in userProgress.Workouts)
+                {
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#@workout.Week-@workout.Day" aria-expanded="true" aria-controls="@workout.Week-@workout.Day">
+                                Week @workout.Week - Day @workout.Day
+                            </button>
+                        </h2>
+                        <div id="@workout.Week-@workout.Day" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                            <div class="accordion-body">
+                                @foreach (var exercise in workout.Exercises)
+                                {
+                                    <div class="input-group">
+                                        <select @bind="exercise.ExcerciseId" class="form-select">
+                                            <option value="">Choose exercise</option>
+                                            @foreach (var exerciseDescription in exerciseDescriptions)
+                                            {
+                                                <option value="@exerciseDescription.Id">@exerciseDescription.Name</option>
+                                            }
+                                        </select>
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" min="0" @bind="@exercise.Reps" placeholder="Reps" />
+                                            <label for="floatingInputGroup1">Reps</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" min="0" @bind="@exercise.Sets" placeholder="Sets" />
+                                            <label for="floatingInputGroup1">Sets</label>
+                                        </div>
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" min="0" @bind="@exercise.RPE" placeholder="RPE / %" />
+                                            <label for="floatingInputGroup1">RPE / %</label>
+                                        </div>
+                                    </div>
+                                }
+                                <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save</button>
+            <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+        }
+    }
+    else
+    {
+        <p>Loading fitness programs...</p>
+    }
+}
+
+@code {
+    private List<ExerciseDescription> exerciseDescriptions = new List<ExerciseDescription>();
+    private List<FitnessProgram> fitnessPrograms;
+    private List<UserProgress> userProgresses;
+    private int selectedFitnessProgramId;
+    private int selectedUserProgressId;
+    private UserProgress userProgress;
+    private User? user;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            user = await Sesssion.GetUser(NavMenu.UserKey);
+            await OnInitializedAsync();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        fitnessPrograms = await FitnessProgramService.GetFitnessPrograms();
+        userProgresses = await UserProgressService.GetUserProgresses(user);
+        exerciseDescriptions = await ExerciseDescriptionService.GetExercises();
+    }
+
+    private async Task SelectUserProgress()
+    {
+        userProgress = await UserProgressService.GetUserProgress(selectedUserProgressId);
+    }
+
+    private async Task GenerateUserProgress()
+    {
+        if (selectedFitnessProgramId != 0)
+        {
+            var fitnessProgram = await FitnessProgramService.GetFitnessProgram(selectedFitnessProgramId);
+            if (fitnessProgram != null)
+            {
+                userProgress = GenerateUserProgressFromFitnessProgram(fitnessProgram);
+                await SaveUserProgress();
+                await OnInitializedAsync();
+            }
+        }
+    }
+
+    private UserProgress GenerateUserProgressFromFitnessProgram(FitnessProgram fitnessProgram)
+    {
+        var userProgress = new UserProgress(fitnessProgram, user);
+        return userProgress;
+    }
+
+    private async Task SaveUserProgress()
+    {
+        if (userProgress != null)
+        {
+            await UserProgressService.UpdateUserProgress(userProgress);
+        }
+
+        NavigationManager.NavigateTo("/userprogress");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/userprogress");
+    }
+}

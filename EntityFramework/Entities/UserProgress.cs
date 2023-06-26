@@ -8,10 +8,12 @@ namespace EntityFramework.Entities
         [Key, Column(Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
+        public int UserId { get; set; }
+        public User User { get; set; }
         public string Name { get; set; }
         public List<WorkoutProgress> Workouts { get; set; }
 
-        public UserProgress(FitnessProgram fitnessProgram)
+        public UserProgress(FitnessProgram fitnessProgram, User user)
         {
             Workouts = fitnessProgram.Workouts
             .Select(w => new WorkoutProgress
@@ -32,6 +34,7 @@ namespace EntityFramework.Entities
             })
             .ToList();
             Name = $"{fitnessProgram.Id} - {fitnessProgram.Name} - {DateTime.Now}";
+            UserId = user.Id;
         }
 
         public UserProgress()

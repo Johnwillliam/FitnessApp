@@ -8,12 +8,17 @@ namespace FitnessApp.Data
     {
         public async Task<UserProgress> GetUserProgress(int id)
         {
-            return await Task.FromResult(GetUserProgresses().Result.Find(x => x.Id == id));
+            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).FirstOrDefault(x => x.Id == id));
+        }
+
+        public async Task<List<UserProgress>> GetUserProgresses(User user)
+        {
+            return user == null ? await Task.FromResult(new List<UserProgress>()) : await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Where(x => x.User.Id == user.Id).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
         }
 
         public async Task<List<UserProgress>> GetUserProgresses()
         {
-            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
+            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
         }
 
         public async Task UpdateUserProgress(UserProgress userProgress)

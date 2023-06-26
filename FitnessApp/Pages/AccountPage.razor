@@ -1,0 +1,87 @@
+﻿@page "/account"
+@using Blazored.LocalStorage;
+@using EntityFramework.Entities;
+@using FitnessApp.Data;
+@inject Session Sesssion
+@inject UserService UserService
+@inject FavoriteExerciseService FavoriteExerciseService
+
+<PageTitle>Account</PageTitle>
+
+@if (user != null)
+{
+    <h3 class="my-4">Your Account</h3>
+
+    <p>Username: @user.UserName</p>
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Exercise Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exercise in user.FavoriteExercises)
+            {
+                <tr>
+                    <td>@exercise.ExerciseDescription.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+
+    <button type="button" class="btn btn-danger" @onclick="Logout">Logout</button>
+}
+else
+{
+    <h3 class="my-4">Please Login</h3>
+
+    <button type="button" class="btn btn-success" @onclick="OpenLogin">Login</button>
+}
+@code {
+    private bool show, display, loggedIn;
+    private User? user;
+    private List<FavoriteExercise> _favoriteExercises = new List<FavoriteExercise>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            user = await Sesssion.GetUser(NavMenu.UserKey);
+            await OnInitializedAsync();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        loggedIn = user != null;
+        if(user != null)
+        {
+            user.FavoriteExercises = await FavoriteExerciseService.GetFavoriteExercises(user);
+        }
+    }
+
+    public async Task OpenLogin()
+    {
+        display = true;
+        await Task.Delay(100);
+        show = true;
+    }
+
+    public async Task Logout()
+    {
+        user = null;
+        loggedIn = false;
+        await Sesssion.Delete(NavMenu.UserKey);
+    }
+
+    private async Task Close()
+    {
+        show = false;
+        await Task.Delay(500);
+        display = false;
+    }
+}

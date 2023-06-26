@@ -16,7 +16,7 @@ public class FitnessProgramService
 
     public async Task<List<FitnessProgram>> GetFitnessPrograms()
     {
-        return await Task.FromResult(new FitnessAppContext().FitnessPrograms.Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
+        return await Task.FromResult(new FitnessAppContext().FitnessPrograms.Include(x => x.User).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
     }
 
     public async Task SaveFitnessProgram(FitnessProgram fitnessProgram)

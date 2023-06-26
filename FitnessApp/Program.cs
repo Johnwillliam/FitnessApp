@@ -1,3 +1,4 @@
+using Blazored.LocalStorage;
 using EntityFramework.Context;
 using EntityFramework.Entities;
 using FitnessApp.Data;
@@ -6,15 +7,17 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Newtonsoft.Json;
 
 var context = new FitnessAppContext();
-var databaseIsNew = !context.Database.GetService<IRelationalDatabaseCreator>().HasTables();
+var databaseIsNew = !context.GetService<IDatabaseCreator>().CanConnect();
 context.Database.EnsureCreated();
 
 if(databaseIsNew)
 {
     LoadExercises();
+    GenerateAdminUser();
 }
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddBlazoredLocalStorage();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -22,6 +25,9 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<FitnessProgramService>();
 builder.Services.AddSingleton<UserProgressService>();
 builder.Services.AddSingleton<ExerciseDescriptionService>();
+builder.Services.AddSingleton<UserService>();
+builder.Services.AddSingleton<FavoriteExerciseService>();
+builder.Services.AddScoped<Session>();
 
 var app = builder.Build();
 
@@ -44,6 +50,12 @@ app.MapFallbackToPage("/_Host");
 
 app.Run();
 
+void GenerateAdminUser()
+{
+    var context = new FitnessAppContext();
+    context.Users.Add(new User("admin", "admin"));
+    context.SaveChanges();
+}
 
 void LoadExercises()
 {

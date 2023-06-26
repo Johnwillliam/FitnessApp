@@ -8,6 +8,7 @@ namespace EntityFramework.Entities
         [Key, Column(Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
+        public bool Skipped { get; set; }
         public DateTime? Date { get; set; }
         public int Week { get; set; }
         public int Day { get; set; }

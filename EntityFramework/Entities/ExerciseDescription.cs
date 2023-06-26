@@ -13,5 +13,7 @@ namespace EntityFramework.Entities
 
         [NotMapped]
         public double MaxWeightUsed { get; set; }
+        [NotMapped]
+        public bool Favorite { get; set; }
     }
 }
