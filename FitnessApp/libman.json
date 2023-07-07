@@ -3,10 +3,6 @@
   "defaultProvider": "unpkg",
   "libraries": [
     {
-      "library": "bootstrap-chosen@1.4.2",
-      "destination": "wwwroot/bootstrap-chosen/"
-    },
-    {
       "library": "bootstrap@5.3.0",
       "destination": "wwwroot/bootstrap/"
     },

@@ -6,24 +6,41 @@ namespace FitnessApp.Data
 {
     public class UserProgressService
     {
-        public async Task<UserProgress> GetUserProgress(int id)
+        public async Task<UserProgress> GetById(int id)
         {
-            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).FirstOrDefault(x => x.Id == id));
+            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.ExerciseProgresses).ThenInclude(y => y.Excercise).FirstOrDefault(x => x.Id == id));
         }
 
-        public async Task<List<UserProgress>> GetUserProgresses(User user)
+        public async Task<List<UserProgress>> GetByUser(User user)
         {
-            return user == null ? await Task.FromResult(new List<UserProgress>()) : await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Where(x => x.User.Id == user.Id).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
+            return user == null ? await Task.FromResult(new List<UserProgress>()) : await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Where(x => x.User.Id == user.Id).Include(x => x.Workouts).ThenInclude(z => z.ExerciseProgresses).ThenInclude(y => y.Excercise).ToList());
         }
 
         public async Task<List<UserProgress>> GetUserProgresses()
         {
-            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.Exercises).ThenInclude(y => y.Excercise).ToList());
+            return await Task.FromResult(new FitnessAppContext().UserProgresses.Include(z => z.User).Include(x => x.Workouts).ThenInclude(z => z.ExerciseProgresses).ThenInclude(y => y.Excercise).ToList());
         }
 
-        public async Task UpdateUserProgress(UserProgress userProgress)
+        public async Task Delete(UserProgress userProgress)
         {
-            var existingUserProgress = await GetUserProgress(userProgress.Id);
+            var context = new FitnessAppContext();
+            context.UserProgresses.Remove(userProgress);
+            context.SaveChanges();
+            await Task.CompletedTask;
+        }
+
+        public async Task<ExerciseProgress?> GetPrevious(ExerciseProgress exerciseProgress)
+        {
+            var context = new FitnessAppContext();
+            return await Task.FromResult(context.ExcerciseProgresses.OrderByDescending(x => x.WorkoutProgress.Date).FirstOrDefault(x => x.WorkoutProgress.UserProgress.UserId == exerciseProgress.WorkoutProgress.UserProgress.UserId
+                                                                                && x.ExcerciseId == exerciseProgress.ExcerciseId
+                                                                                && (exerciseProgress.WorkoutProgress.Date == null || x.WorkoutProgress.Date < exerciseProgress.WorkoutProgress.Date)));
+        }
+
+        public async Task Update(UserProgress userProgress)
+        {
+            var existingUserProgress = await GetById(userProgress.Id);
+            var context = new FitnessAppContext();
             if (existingUserProgress != null)
             {
                 foreach (var workout in userProgress.Workouts)
@@ -31,9 +48,9 @@ namespace FitnessApp.Data
                     var existingWorkout = existingUserProgress.Workouts.FirstOrDefault(w => w.Week == workout.Week && w.Day == workout.Day);
                     if (existingWorkout != null)
                     {
-                        foreach (var exercise in workout.Exercises)
+                        foreach (var exercise in workout.ExerciseProgresses)
                         {
-                            var existingExercise = existingWorkout.Exercises.FirstOrDefault(e => e.ExcerciseId == exercise.ExcerciseId);
+                            var existingExercise = existingWorkout.ExerciseProgresses.FirstOrDefault(e => e.ExcerciseId == exercise.ExcerciseId);
                             if (existingExercise != null)
                             {
                                 existingExercise.RepsDone = exercise.RepsDone;
@@ -43,7 +60,7 @@ namespace FitnessApp.Data
                             }
                             else
                             {
-                                existingWorkout.Exercises.Add(new ExerciseProgress
+                                existingWorkout.ExerciseProgresses.Add(new ExerciseProgress
                                 {
                                     ExcerciseId = exercise.ExcerciseId,
                                     RepsDone = exercise.RepsDone,
@@ -60,7 +77,7 @@ namespace FitnessApp.Data
                         {
                             Week = workout.Week,
                             Day = workout.Day,
-                            Exercises = workout.Exercises.Select(e => new ExerciseProgress
+                            ExerciseProgresses = workout.ExerciseProgresses.Select(e => new ExerciseProgress
                             {
                                 ExcerciseId = e.ExcerciseId,
                                 RepsDone = e.RepsDone,
@@ -71,13 +88,11 @@ namespace FitnessApp.Data
                         });
                     }
                 }
-                var context = new FitnessAppContext();
                 context.UserProgresses.Update(userProgress);
                 context.SaveChanges();
             }
             else
             {
-                var context = new FitnessAppContext();
                 context.UserProgresses.Add(userProgress);
                 context.SaveChanges();
             }

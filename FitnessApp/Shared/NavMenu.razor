@@ -35,19 +35,19 @@
             <div class="offcanvas-body">
                 <ul class="navbar-nav justify-content-end pe-3">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="">Home</a>
+                        <a class="nav-link @(string.IsNullOrEmpty(currentUri) ? "active" : "")" href="">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="fitnessprogram">Programs</a>
+                        <a class="nav-link @(currentUri.Contains("fitnessprogram") ? "active" : "")" href="fitnessprogram">Programs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="userprogress">User Progress</a>
+                        <a class="nav-link @(currentUri.Contains("userprogress") ? "active" : "")" href="userprogress">User Progress</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="exercises">Exercises</a>
+                        <a class="nav-link @(currentUri.Contains("exercises") ? "active" : "")" href="exercises">Exercises</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="account">Account</a>
+                        <a class="nav-link @(currentUri.Contains("account") ? "active" : "")" href="account">Account</a>
                     </li>
                 </ul>
             </div>
@@ -89,6 +89,7 @@
     private bool show, display, loggedIn;
     private string userName, password;
     private User? user;
+    private string currentUri = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -98,6 +99,18 @@
             loggedIn = user != null;
             StateHasChanged();
         }
+        currentUri = NavigationManager.Uri;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUri = NavigationManager.Uri.Replace(NavigationManager.BaseUri, "");
+        StateHasChanged();
     }
 
     public async Task<string?> GetUserName()

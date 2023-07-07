@@ -1,7 +1,5 @@
 ﻿@page "/exercises"
-@using EntityFramework.Context;
-@using EntityFramework.Entities;
-@using FitnessApp.Data;
+@page "/exercises/{currentPage:int}"
 @inject ExerciseDescriptionService ExerciseService
 @inject UserProgressService UserProgressService
 @inject NavigationManager NavigationManager
@@ -13,7 +11,7 @@
 
 <h3>Exercises</h3>
 
-@if (user == null)
+@if (_user == null)
 {
     <h3>Please login</h3>
 }
@@ -23,16 +21,16 @@ else
 
     <div class="input-group">
         <div class="form-floating">
-            <input type="text" class="form-control" min="0" @bind="@exerciseName" />
+            <input type="text" class="form-control" min="0" @bind="@_exerciseName" />
             <label for="floatingInputGroup1">Exercise Name</label>
         </div>
         <button class="btn btn-outline-secondary" @onclick="CreateExercise">Create</button>
     </div>
 
     <h4>All Exercises:</h4>
-    @if (exerciseDescriptions != null && exerciseDescriptions.Any())
+    @if (_filteredExerciseDescriptions != null && _filteredExerciseDescriptions.Any())
     {
-        <table class="table table-hover">
+        <table class="table table-hover" id="exerciseTable">
             <thead>
                 <tr>
                     <th>Exercise Name</th>
@@ -40,14 +38,14 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var exercise in exerciseDescriptions)
+                @foreach (var exercise in _filteredExerciseDescriptions)
                 {
                     <tr>
                         <td>@exercise.Name</td>
                         <td>@exercise.MaxWeightUsed</td>
                         <td>
                             <div class="btn-group">
-                                @if(exercise.Favorite)
+                                @if (exercise.Favorite)
                                 {
                                     <button type="button" class="btn btn-outline-secondary" @onclick="(() => Unfavorite(exercise))">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-star-fill" viewBox="0 0 16 16">
@@ -64,76 +62,56 @@ else
                                         </svg>
                                         <span class="visually-hidden">Button</span>
                                     </button>
-                                }         
+                                }
                             </div>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        <nav aria-label="Page navigation example">
+            <ul class="pagination  justify-content-center">
+                @if (CurrentPage > 1)
+                {
+                    <li class="page-item"><a class="page-link" href="exercises/@(CurrentPage - 1)">Previous</a></li>
+                }
+                @switch (CurrentPage)
+                {
+                    case 1:
+                        _startDisplayPageNumber = 1;
+                        break;
+                    case 2:
+                        _startDisplayPageNumber = 1;
+                        break;
+                    case 3:
+                        _startDisplayPageNumber = 1;
+                        break;
+                    case > 3:
+                        _startDisplayPageNumber = CurrentPage - _amountOfNextPages;
+                        break;
+                }
+
+                @for (var currentPage = _startDisplayPageNumber; currentPage <= AmountOfPages; currentPage++)
+                {
+                    if (currentPage > this.CurrentPage + _amountOfNextPages)
+                    {
+                        break;
+                    }
+                    <li class="page-item @(currentPage == this.CurrentPage ? "active" : "")">
+                        <a class="page-link" href="exercises/@(currentPage)">@(currentPage)</a>
+                    </li>
+                }
+
+                @if (CurrentPage + 1 < AmountOfPages)
+                {
+                    <li class="page-item"><a class="page-link" href="exercises/@(CurrentPage + 1)">Next</a></li>
+                }
+            </ul>
+        </nav>
     }
     else
     {
         <p>No exercises found.</p>
-    }
-}
-
-@code {
-    private List<ExerciseDescription> exerciseDescriptions;
-    private List<UserProgress> userProgressList;
-    private string exerciseName;
-    private User? user;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            user = await Sesssion.GetUser(NavMenu.UserKey);
-            await OnInitializedAsync();
-            StateHasChanged();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        if(user == null)
-        {
-            return;
-        }
-
-        exerciseDescriptions = await ExerciseService.GetExercises();
-        user.FavoriteExercises = await FavoriteExerciseService.GetFavoriteExercises(user);
-        foreach (var exercise in exerciseDescriptions)
-        {
-            var exercises = new FitnessAppContext().ExcerciseProgresses.Where(x => x.ExcerciseId == exercise.Id).ToList();
-            exercise.MaxWeightUsed = exercises.Any() ? exercises.Max(x => x.WeightDone) : 0;
-            exercise.Favorite = user.FavoriteExercises.Any(x => x.ExerciseDescriptionId == exercise.Id);
-        }
-        userProgressList = await UserProgressService.GetUserProgresses();
-    }
-
-    public async Task Favorite(ExerciseDescription exercise)
-    {
-        user.FavoriteExercises.Add(new FavoriteExercise(exercise));
-        await UserService.UpdateUser(user);
-        OnInitializedAsync();
-    }
-
-    public async Task Unfavorite(ExerciseDescription exercise)
-    {
-        var favorite = user.FavoriteExercises.FirstOrDefault(x => x.ExerciseDescriptionId == exercise.Id);
-        await FavoriteExerciseService.RemoveFavoriteExercise(favorite);
-        OnInitializedAsync();
-    }
-
-    private async Task CreateExercise()
-    {
-        if (!string.IsNullOrEmpty(exerciseName))
-        {
-            var exercise = new ExerciseDescription { Name = exerciseName };
-            await ExerciseService.AddExercise(exercise);
-            exerciseName = string.Empty;
-            NavigationManager.NavigateTo("/exercises");
-        }
     }
 }

@@ -17,5 +17,8 @@ namespace EntityFramework.Entities
         public int SetsDone { get; set; }
         public double WeightDone { get; set; }
         public string Comment { get; set; }
+
+        //parent
+        public WorkoutProgress WorkoutProgress { get; set; }
     }
 }

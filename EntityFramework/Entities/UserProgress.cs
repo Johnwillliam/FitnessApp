@@ -20,7 +20,7 @@ namespace EntityFramework.Entities
             {
                 Week = w.Week,
                 Day = w.Day,
-                Exercises = w.Exercises.Select(e => new ExerciseProgress
+                ExerciseProgresses = w.Exercises.Select(e => new ExerciseProgress
                 {
                     ExcerciseId = e.ExcerciseId,
                     Reps = e.Reps,
@@ -33,7 +33,7 @@ namespace EntityFramework.Entities
                 }).ToList()
             })
             .ToList();
-            Name = $"{fitnessProgram.Id} - {fitnessProgram.Name} - {DateTime.Now}";
+            Name = $"{fitnessProgram.Id} - {fitnessProgram.Name} - {DateTime.Now:dd-MM-yyyy HH:mm:ss}";
             UserId = user.Id;
         }
 

@@ -25,7 +25,7 @@ namespace FitnessApp.Data
             return Task.FromResult(user);
         }
 
-        public async Task UpdateUser(User user)
+        public async Task Update(User user)
         {
             var context = new FitnessAppContext();
             context.Users.Update(user);

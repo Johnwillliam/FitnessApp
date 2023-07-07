@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fitnessapp
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: fitnessapp
+    spec:
+      containers:
+      - name: fitnessapp
+        image: mjwtan/fitnessapp:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_URLS
+          value: http://*:8080
+        - name: backendUrl
+          value: http://fitnessapp
+  selector:
+    matchLabels:
+      app: fitnessapp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fitnessapp
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+  selector:
+    app: fitnessapp

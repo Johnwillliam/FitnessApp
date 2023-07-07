@@ -1,6 +1,4 @@
 ﻿@page "/"
-@using EntityFramework.Entities;
-@using FitnessApp.Data;
 @inject UserProgressService UserProgressService
 @inject NavigationManager NavigationManager
 @inject Session Sesssion
@@ -9,30 +7,48 @@
 
 <h3>Home</h3>
 
-@if (user == null)
+@if (_user == null)
 {
     <h3>Please login</h3>
 }
 else
 {
-    @if (userProgress != null)
+    @if (_userProgresses.Any())
+    {
+        <h4>Select a Fitness Program:</h4>
+        <div class="input-group">
+            <select class="form-select" @onchange="SelectedUserProgress">
+                <option value="">-- Select --</option>
+                @foreach (var userProgress in _userProgresses)
+                {
+                    <option value="@userProgress.Id">@userProgress.Name</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <p>Please create a <a href="/userprogress">User Progress</a> to track your progress.</p>
+    }
+
+    @if (_userProgress != null)
     {
         <h4 style="display:inline-block;margin-right:10px;">Select week:</h4>
         <div class="input-group">
-            <select class="form-select" @onchange="WeekChanged" value="@selectedWeek">
+            <select class="form-select" @onchange="WeekChanged" value="@_selectedWeek">
                 <option value="">-- Select --</option>
-                @foreach (var workout in userProgress.Workouts.GroupBy(x => x.Week))
+                @foreach (var workout in _userProgress.Workouts.GroupBy(x => x.Week))
                 {
                     <option value="@workout.Key">@workout.Key</option>
                 }
             </select>
         </div>
 
-        @if (workouts != null && workouts.Any())
+        @if (_workouts != null && _workouts.Any())
         {
             <div class="accordion" id="accordionExample">
 
-                @foreach (var workout in workouts)
+                @foreach (var workout in _workouts)
                 {
                     <div class="accordion-item">
                         <h2 class="accordion-header">
@@ -81,24 +97,25 @@ else
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var exercise in workout.Exercises)
+                                            @foreach (var progress in workout.ExerciseProgresses)
                                             {
+                                                var previousWorkout = @GetPreviousExerciseData(progress).Result;
                                                 <tr>
-                                                    <td>@exercise.Excercise.Name</td>
-                                                    <td style="text-align:center">@exercise.Sets</td>
-                                                    <td style="text-align:center">@exercise.Reps</td>
-                                                    <td style="text-align:center">@exercise.RPE</td>
-                                                    <td><input class="form-control" type="number" min="0" @bind="@exercise.SetsDone" /></td>
-                                                    <td><input class="form-control" type="number" min="0" style="min-width:50px" @bind="@exercise.RepsDone" /></td>
-                                                    <td><input class="form-control" type="number" min="0" @bind="@exercise.WeightDone" /></td>
-                                                    <td style="text-align:center">@exercise.Reps</td>
-                                                    <td><input class="form-control" type="text" @bind="@exercise.Comment" /></td>
+                                                    <td>@(progress.Excercise == null ? string.Empty : progress.Excercise.Name)</td>
+                                                    <td style="text-align:center">@progress.Sets</td>
+                                                    <td style="text-align:center">@progress.Reps</td>
+                                                    <td style="text-align:center">@progress.RPE</td>
+                                                    <td><input class="form-control" type="number" min="0" @bind="@progress.SetsDone" /></td>
+                                                    <td><input class="form-control" type="number" min="0" style="min-width:50px" @bind="@progress.RepsDone" /></td>
+                                                    <td><input class="form-control" type="number" min="0" @bind="@progress.WeightDone" /></td>
+                                                    <td style="text-align:center" data-toggle="tooltip" data-bs-html="true" title="@(previousWorkout == null? string.Empty : $"Sets Done: {previousWorkout.SetsDone} <br> Reps Done: {previousWorkout.RepsDone} <br> Weight Done: {previousWorkout.WeightDone} <br>")">@(previousWorkout == null ? string.Empty : $"{previousWorkout.WeightDone}KG")</td>
+                                                    <td><input class="form-control" type="text" @bind="@progress.Comment" /></td>
                                                 </tr>
                                             }
                                         </tbody>
                                     </table>
                                 </div>
-                                <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save Progress</button>
+                                <button class="btn btn-outline-secondary" @onclick="Save">Save Progress</button>
                             </div>
                         </div>
                     </div>
@@ -107,87 +124,9 @@ else
         }
 
         <div>
-            <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save Progress</button>
+            <button class="btn btn-outline-secondary" @onclick="Save">Save Progress</button>
             <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
         </div>
     }
-    else
-    {
-        <h4>Select a Fitness Program:</h4>
-        <div class="input-group">
-            <select class="form-select" @onchange="SelectedUserProgress">
-                <option value="">-- Select --</option>
-                @foreach (var userProgress in userProgresses)
-                {
-                    <option value="@userProgress.Id">@userProgress.Name</option>
-                }
-            </select>
-        </div>
-    }
 }
 
-@code {
-    private int selectedUserProgressId;
-    private int selectedWeek;
-    private User? user;
-    private UserProgress? userProgress;
-    private List<UserProgress> userProgresses;
-    private List<WorkoutProgress> workouts;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            user = await Sesssion.GetUser(NavMenu.UserKey);
-            await OnInitializedAsync();
-            StateHasChanged();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        userProgresses = await UserProgressService.GetUserProgresses(user);
-    }
-
-    private void SelectedUserProgress(ChangeEventArgs e)
-    {
-        userProgress = UserProgressService.GetUserProgress(int.Parse(e.Value.ToString())).Result;
-        var week = userProgress.Workouts.OrderBy(x => x.Week).First(x => !x.Date.HasValue && !x.Skipped).Week;
-        selectedWeek = week;
-        GetWorkouts(week);
-    }
-
-    private void WeekChanged(ChangeEventArgs e)
-    {
-        GetWorkouts(Int32.TryParse(e.Value?.ToString(), out var week) ? week : null);
-    }
-
-    private void GetWorkouts(int? week)
-    {
-        if (!week.HasValue)
-        {
-            workouts = new List<WorkoutProgress>();
-        }
-        else
-        {
-            workouts = userProgress.Workouts.Where(x => x.Week == week).ToList();
-        }
-        StateHasChanged();
-    }
-
-    private async Task SaveUserProgress()
-    {
-        if (userProgress != null)
-        {
-            await UserProgressService.UpdateUserProgress(userProgress);
-        }
-
-        NavigationManager.NavigateTo("/");
-    }
-
-    private void Cancel()
-    {
-        userProgress = null;
-        NavigationManager.NavigateTo("/");
-    }
-}

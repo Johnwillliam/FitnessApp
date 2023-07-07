@@ -1,8 +1,4 @@
 ﻿@page "/fitnessprogram"
-@using EntityFramework.Entities;
-@using FitnessApp.Data;
-@using Microsoft.AspNetCore.Mvc;
-@using Microsoft.AspNetCore.Mvc.Rendering;
 @inject FitnessProgramService FitnessProgramService
 @inject ExerciseDescriptionService ExerciseDescriptionService
 @inject NavigationManager NavigationManager
@@ -12,7 +8,7 @@
 
 <h3>Fitness Program</h3>
 
-@if (user == null)
+@if (_user == null)
 {
     <h3>Please login</h3>
 }
@@ -21,39 +17,39 @@ else
     <h3>Add Fitness Program</h3>
     <div class="input-group">
         <div class="form-floating">
-            <input type="text" class="form-control" min="0" @bind="@programName" />
+            <input type="text" class="form-control" min="0" @bind="@_programName" />
             <label for="floatingInputGroup1">Program Name</label>
         </div>
         <div class="form-floating">
-            <input type="number" class="form-control" min="0" @bind="@numberOfWeeks" />
+            <input type="number" class="form-control" min="0" @bind="@_numberOfWeeks" />
             <label for="floatingInputGroup1">Number of Weeks</label>
         </div>
         <div class="form-floating">
-            <input type="number" class="form-control" min="0" @bind="@daysPerWeek" />
+            <input type="number" class="form-control" min="0" @bind="@_daysPerWeek" />
             <label for="floatingInputGroup1">Days per Week</label>
         </div>
-        <button class="btn btn-outline-secondary" @onclick="GenerateWorkouts" disabled="@(!canGenerateWorkouts)">Generate</button>
+        <button class="btn btn-outline-secondary" @onclick="GenerateWorkouts" disabled="@(!CanGenerateWorkouts)">Generate</button>
     </div>
 
     <h4>Select a Fitness Program:</h4>
     <div class="input-group">
-        <select class="form-select" @bind="@selectedFitnessProgramId">
+        <select class="form-select select-input " @onchange="SelectFitnessProgram">
             <option value="">-- Select --</option>
-            @foreach (var fitnessProgram in fitnessPrograms)
+            @foreach (var fitnessProgram in _fitnessPrograms)
             {
                 <option value="@fitnessProgram.Id">@fitnessProgram.Name</option>
             }
         </select>
-
-        <button class="btn btn-outline-secondary" @onclick="LoadWorkouts">Load</button>
     </div>
 
-    @if (showWorkouts)
+    @if (_workouts.Any())
     {
-        <h4 style="padding-top:50px">Workouts</h4>
+        <h4>Workouts</h4>
+
+
         <div class="accordion" id="accordionExample">
 
-            @foreach (var workout in workouts)
+            @foreach (var workout in _workouts)
             {
                 <div class="accordion-item">
                     <h2 class="accordion-header">
@@ -69,7 +65,7 @@ else
                                 <div class="input-group">
                                     <select @bind="exercise.ExcerciseId" class="form-select">
                                         <option value="">Choose exercise</option>
-                                        @foreach (var exerciseDescription in exerciseDescriptions)
+                                        @foreach (var exerciseDescription in _exerciseDescriptions)
                                         {
                                             <option value="@exerciseDescription.Id">@exerciseDescription.Name</option>
                                         }
@@ -92,111 +88,17 @@ else
                             <div class="form-floating">
                                 <button class="btn btn-outline-secondary" @onclick="(() => AddExercise(workout))">Add Exercise</button>
                                 <button class="btn btn-outline-secondary" @onclick="UpdateFitnessProgram">Save Program</button>
-                            </div>
+                            </div>                         
                         </div>
                     </div>
                 </div>
             }
         </div>
 
-        <div>
-            <button class="btn btn-outline-secondary" @onclick="UpdateFitnessProgram">Save Program</button>
+        <div class="input-group">
+            <button class="btn btn-outline-secondary" @onclick="UpdateFitnessProgram">Save</button>
+            <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-outline-secondary" @onclick="Delete">Delete</button>
         </div>
-    }
-}
-
-@code {
-    private List<ExerciseDescription> exerciseDescriptions = new List<ExerciseDescription>();
-    private string programName = string.Empty;
-    private int daysPerWeek;
-    private int numberOfWeeks;
-    private bool showWorkouts;
-    private List<FitnessWorkout> workouts = new List<FitnessWorkout>();
-    private bool canGenerateWorkouts => !string.IsNullOrEmpty(programName) && daysPerWeek > 0 && numberOfWeeks > 0;
-    private int selectedFitnessProgramId;
-    private List<FitnessProgram> fitnessPrograms = new List<FitnessProgram>();
-    private FitnessProgram fitnessProgram;
-    private User? user;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            user = await Sesssion.GetUser(NavMenu.UserKey);
-            StateHasChanged();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        fitnessPrograms = await FitnessProgramService.GetFitnessPrograms();
-        exerciseDescriptions = await ExerciseDescriptionService.GetExercises();
-    }
-
-    private async Task LoadWorkouts()
-    {
-        showWorkouts = true;
-        fitnessProgram = await FitnessProgramService.GetFitnessProgram(selectedFitnessProgramId);
-        workouts = fitnessProgram.Workouts;
-        StateHasChanged();
-    }
-
-    private async void GenerateWorkouts()
-    {
-        if (await FitnessProgramService.NameExists(programName) || user == null)
-        {
-            return;
-        }
-
-        showWorkouts = true;
-        workouts = new List<FitnessWorkout>();
-
-        for (int week = 1; week <= numberOfWeeks; week++)
-        {
-            for (int day = 1; day <= daysPerWeek; day++)
-            {
-                var workout = new FitnessWorkout
-                    {
-                        Week = week,
-                        Day = day,
-                        Exercises = new List<FitnessExercise>()
-                    };
-
-                workouts.Add(workout);
-            }
-        }
-        await SaveFitnessProgram();
-    }
-
-    private async void AddExercise(FitnessWorkout workout)
-    {
-        workout.Exercises.Add(new FitnessExercise());
-        fitnessProgram.Workouts = workouts;
-        await FitnessProgramService.UpdateFitnessProgram(fitnessProgram);
-    }
-
-    private void RemoveExercise(FitnessWorkout workout, FitnessExercise exercise)
-    {
-        workout.Exercises.Remove(exercise);
-    }
-
-    private async Task UpdateFitnessProgram()
-    {
-        fitnessProgram.Workouts = workouts;
-        await FitnessProgramService.UpdateFitnessProgram(fitnessProgram);
-    }
-
-    private async Task SaveFitnessProgram()
-    {
-        fitnessProgram = new FitnessProgram
-            {
-                Name = programName,
-                Workouts = workouts,
-                UserId = user.Id
-            };
-
-        await FitnessProgramService.SaveFitnessProgram(fitnessProgram);
-        await OnInitializedAsync();
-        StateHasChanged();
     }
 }

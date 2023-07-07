@@ -13,11 +13,14 @@ namespace EntityFramework.Entities
         public int Week { get; set; }
         public int Day { get; set; }
         public bool IsCompleted { get; set; }
-        public List<ExerciseProgress> Exercises { get; set; }
+        public List<ExerciseProgress> ExerciseProgresses { get; set; }
+
+        //parent
+        public UserProgress UserProgress { get; set; }
 
         public WorkoutProgress()
         {
-            Exercises = new List<ExerciseProgress>();
+            ExerciseProgresses = new List<ExerciseProgress>();
         }
     }
 }

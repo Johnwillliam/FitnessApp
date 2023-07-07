@@ -1,6 +1,4 @@
 ﻿@page "/userprogress"
-@using EntityFramework.Entities;
-@using FitnessApp.Data;
 @inject FitnessProgramService FitnessProgramService
 @inject UserProgressService UserProgressService
 @inject NavigationManager NavigationManager
@@ -11,19 +9,19 @@
 
 <h3>User Progress</h3>
 
-@if (user == null)
+@if (_user == null)
 {
     <h3>Please login</h3>
 }
 else
 {
-    @if (fitnessPrograms != null && fitnessPrograms.Any())
+    @if (_fitnessPrograms != null && _fitnessPrograms.Any())
     {
         <h4>Select a Fitness Program:</h4>
         <div class="input-group">
-            <select class="form-select" @bind="@selectedFitnessProgramId">
+            <select class="form-select" @bind="@_selectedFitnessProgramId">
                 <option value="">-- Select --</option>
-                @foreach (var fitnessProgram in fitnessPrograms)
+                @foreach (var fitnessProgram in _fitnessPrograms)
                 {
                     <option value="@fitnessProgram.Id">@fitnessProgram.Name</option>
                 }
@@ -34,23 +32,21 @@ else
 
         <h4>Select a User Progress:</h4>
         <div class="input-group">
-            <select class="form-select" @bind="@selectedUserProgressId">
+            <select class="form-select" @onchange="SelectUserProgress">
                 <option value="">-- Select --</option>
-                @foreach (var userProgress in userProgresses)
+                @foreach (var userProgress in _userProgresses)
                 {
                     <option value="@userProgress.Id">@userProgress.Name</option>
                 }
             </select>
-
-            <button class="btn btn-outline-secondary" @onclick="SelectUserProgress">Select</button>
         </div>
 
-        @if (userProgress != null)
+        @if (_userProgress != null)
         {
             <h4>Workouts</h4>
             <div class="accordion" id="accordionExample">
 
-                @foreach (var workout in userProgress.Workouts)
+                @foreach (var workout in _userProgress.Workouts)
                 {
                     <div class="accordion-item">
                         <h2 class="accordion-header">
@@ -60,12 +56,12 @@ else
                         </h2>
                         <div id="@workout.Week-@workout.Day" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
                             <div class="accordion-body">
-                                @foreach (var exercise in workout.Exercises)
+                                @foreach (var exercise in workout.ExerciseProgresses)
                                 {
                                     <div class="input-group">
                                         <select @bind="exercise.ExcerciseId" class="form-select">
                                             <option value="">Choose exercise</option>
-                                            @foreach (var exerciseDescription in exerciseDescriptions)
+                                            @foreach (var exerciseDescription in _exerciseDescriptions)
                                             {
                                                 <option value="@exerciseDescription.Id">@exerciseDescription.Name</option>
                                             }
@@ -84,86 +80,23 @@ else
                                         </div>
                                     </div>
                                 }
-                                <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save</button>
+                                <button class="btn btn-outline-secondary" @onclick="Save">Save</button>
                             </div>
                         </div>
                     </div>
                 }
             </div>
 
-            <button class="btn btn-outline-secondary" @onclick="SaveUserProgress">Save</button>
-            <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+            <div class="input-group">
+                <button class="btn btn-outline-secondary" @onclick="Save">Save</button>
+                <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+                <button class="btn btn-outline-secondary" @onclick="Delete">Delete</button>
+            </div>
+
         }
     }
     else
     {
-        <p>No Fitness Programs found, please create a program first.</p>
-    }
-}
-
-@code {
-    private List<ExerciseDescription> exerciseDescriptions = new List<ExerciseDescription>();
-    private List<FitnessProgram> fitnessPrograms;
-    private List<UserProgress> userProgresses;
-    private int selectedFitnessProgramId;
-    private int selectedUserProgressId;
-    private UserProgress userProgress;
-    private User? user;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            user = await Sesssion.GetUser(NavMenu.UserKey);
-            await OnInitializedAsync();
-            StateHasChanged();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        fitnessPrograms = await FitnessProgramService.GetFitnessPrograms();
-        userProgresses = await UserProgressService.GetUserProgresses(user);
-        exerciseDescriptions = await ExerciseDescriptionService.GetExercises();
-    }
-
-    private async Task SelectUserProgress()
-    {
-        userProgress = await UserProgressService.GetUserProgress(selectedUserProgressId);
-    }
-
-    private async Task GenerateUserProgress()
-    {
-        if (selectedFitnessProgramId != 0)
-        {
-            var fitnessProgram = await FitnessProgramService.GetFitnessProgram(selectedFitnessProgramId);
-            if (fitnessProgram != null)
-            {
-                userProgress = GenerateUserProgressFromFitnessProgram(fitnessProgram);
-                await SaveUserProgress();
-                await OnInitializedAsync();
-            }
-        }
-    }
-
-    private UserProgress GenerateUserProgressFromFitnessProgram(FitnessProgram fitnessProgram)
-    {
-        var userProgress = new UserProgress(fitnessProgram, user);
-        return userProgress;
-    }
-
-    private async Task SaveUserProgress()
-    {
-        if (userProgress != null)
-        {
-            await UserProgressService.UpdateUserProgress(userProgress);
-        }
-
-        NavigationManager.NavigateTo("/userprogress");
-    }
-
-    private void Cancel()
-    {
-        NavigationManager.NavigateTo("/userprogress");
+        <p>Please create a <a href="/fitnessprogram">Fitness Program</a> first.</p>
     }
 }
