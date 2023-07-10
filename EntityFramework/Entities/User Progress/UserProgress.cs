@@ -11,26 +11,23 @@ namespace EntityFramework.Entities
         public int UserId { get; set; }
         public User User { get; set; }
         public string Name { get; set; }
-        public List<WorkoutProgress> Workouts { get; set; }
+        public List<UserProgressWorkout> Workouts { get; set; }
 
         public UserProgress(FitnessProgram fitnessProgram, User user)
         {
             Workouts = fitnessProgram.Workouts
-            .Select(w => new WorkoutProgress
+            .Select(w => new UserProgressWorkout
             {
                 Week = w.Week,
                 Day = w.Day,
-                ExerciseProgresses = w.Exercises.Select(e => new ExerciseProgress
-                {
-                    ExcerciseId = e.ExcerciseId,
-                    Reps = e.Reps,
-                    Sets = e.Sets,
-                    RPE = e.RPE,
-                    RepsDone = 0,
-                    SetsDone = 0,
-                    WeightDone = 0,
-                    Comment = ""
-                }).ToList()
+                UserProgressWorkoutExercises = w.Exercises.Select(e => new UserProgressWorkoutExercise
+                (
+                    e.ExcerciseId,
+                    e.Reps,
+                    e.Sets,
+                    e.RPE,
+                    string.Empty
+                )).ToList()
             })
             .ToList();
             Name = $"{fitnessProgram.Id} - {fitnessProgram.Name} - {DateTime.Now:dd-MM-yyyy HH:mm:ss}";

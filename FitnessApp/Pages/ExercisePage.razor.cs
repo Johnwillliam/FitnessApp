@@ -55,12 +55,6 @@ namespace FitnessApp.Pages
 
             _filteredExerciseDescriptions = await ExerciseService.GetFilteredExercises((CurrentPage - 1) * _amountOfItemsPerPage, _amountOfItemsPerPage);
             _user.FavoriteExercises = await FavoriteExerciseService.GetByUser(_user);
-            foreach (var exercise in _filteredExerciseDescriptions)
-            {
-                var doneExercises = new FitnessAppContext().ExcerciseProgresses.Where(x => x.WorkoutProgress.UserProgress.UserId == _user.Id && x.ExcerciseId == exercise.Id);
-                exercise.MaxWeightUsed = doneExercises.Any() ? doneExercises.Max(x => x.WeightDone) : 0;
-                exercise.Favorite = _user.FavoriteExercises.Any(x => x.ExerciseDescriptionId == exercise.Id);
-            }
         }
 
         public async Task Favorite(ExerciseDescription exercise)

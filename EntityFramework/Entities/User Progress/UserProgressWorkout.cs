@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EntityFramework.Entities
 {
-    public class WorkoutProgress
+    public class UserProgressWorkout
     {
         [Key, Column(Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -13,14 +13,14 @@ namespace EntityFramework.Entities
         public int Week { get; set; }
         public int Day { get; set; }
         public bool IsCompleted { get; set; }
-        public List<ExerciseProgress> ExerciseProgresses { get; set; }
+        public List<UserProgressWorkoutExercise> UserProgressWorkoutExercises { get; set; }
 
         //parent
         public UserProgress UserProgress { get; set; }
 
-        public WorkoutProgress()
+        public UserProgressWorkout()
         {
-            ExerciseProgresses = new List<ExerciseProgress>();
+            UserProgressWorkoutExercises = new List<UserProgressWorkoutExercise>();
         }
     }
 }

@@ -82,3 +82,11 @@ th {
 h4 {
     padding-top: 30px
 }
+
+.card-body {
+    padding: 0 !important;
+}
+
+.accordion-body {
+    padding: 0 !important;
+}

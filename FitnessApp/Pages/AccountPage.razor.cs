@@ -28,11 +28,7 @@ namespace FitnessApp.Pages
             }
 
             _user.FavoriteExercises = await FavoriteExerciseService.GetByUser(_user);
-            foreach (var exercise in _user.FavoriteExercises)
-            {
-                var doneExercises = new FitnessAppContext().ExcerciseProgresses.Where(x => x.WorkoutProgress.UserProgress.UserId == _user.Id && x.ExcerciseId == exercise.ExerciseDescriptionId);
-                exercise.ExerciseDescription.MaxWeightUsed = doneExercises.Any() ? doneExercises.Max(x => x.WeightDone) : 0;
-            }
+            
         }
 
         public async Task Logout()

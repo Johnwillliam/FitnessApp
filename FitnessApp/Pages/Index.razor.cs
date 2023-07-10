@@ -11,7 +11,7 @@ namespace FitnessApp.Pages
         private User? _user;
         private UserProgress? _userProgress;
         private List<UserProgress> _userProgresses = new();
-        private List<WorkoutProgress> _workouts = new();
+        private List<UserProgressWorkout> _workouts = new();
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -41,9 +41,12 @@ namespace FitnessApp.Pages
 
             var userProgresId = int.Parse(value);
             _userProgress = UserProgressService.GetById(userProgresId).Result;
-            var week = _userProgress.Workouts.OrderBy(x => x.Week).First(x => !x.Date.HasValue && !x.Skipped).Week;
-            _selectedWeek = week;
-            GetWorkouts(week);
+            if(_userProgress != null)
+            {
+                var week = _userProgress.Workouts.OrderBy(x => x.Week).First(x => !x.Date.HasValue && !x.Skipped).Week;
+                _selectedWeek = week;
+                GetWorkouts(week);
+            }
         }
 
         private void WeekChanged(ChangeEventArgs e)
@@ -55,7 +58,7 @@ namespace FitnessApp.Pages
         {
             if (_userProgress != null)
             {
-                _workouts = week.HasValue ? _userProgress.Workouts.Where(x => x.Week == week).ToList() : new List<WorkoutProgress>();
+                _workouts = week.HasValue ? _userProgress.Workouts.Where(x => x.Week == week).ToList() : new List<UserProgressWorkout>();
                 StateHasChanged();
             }
         }
@@ -76,9 +79,56 @@ namespace FitnessApp.Pages
             NavigationManager.NavigateTo("/");
         }
 
-        private async Task<ExerciseProgress?> GetPreviousExerciseData(ExerciseProgress exerciseProgress)
+        private async Task<UserProgressWorkoutExercise?> GetPreviousExerciseData(UserProgressWorkoutExercise exerciseProgress)
         {
             return await UserProgressService.GetPrevious(exerciseProgress);
+        }
+
+        private void ToggleSetIsCompleted(UserProgressWorkoutExerciseSet userProgressWorkoutExerciseSet)
+        {
+            userProgressWorkoutExerciseSet.IsCompleted = !userProgressWorkoutExerciseSet.IsCompleted;
+        }
+
+        private async Task CopySetTargets(UserProgressWorkoutExercise userProgressWorkoutExercise)
+        {
+            userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.AsParallel().ForAll(x =>
+            {
+                x.RepsDone = x.UserProgressWorkoutExercise.Reps;
+            });
+            _ = Save();
+            await Task.CompletedTask;
+        }
+
+        private async Task CopyFirstWeight(UserProgressWorkoutExercise userProgressWorkoutExercise)
+        {
+            var firstWeight = userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.First()?.WeightDone;
+            userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.AsParallel().ForAll(x =>
+            {
+                x.WeightDone = firstWeight ?? 0;
+            });
+            _ = Save();
+            await Task.CompletedTask;
+        }
+
+        private async Task AllSetsDone(UserProgressWorkoutExercise userProgressWorkoutExercise)
+        {
+            userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.AsParallel().ForAll(x =>
+            {
+                x.IsCompleted = true;
+            });
+            _ = Save();
+            await Task.CompletedTask;
+        }
+
+        private async Task AllSetsToggleDone(UserProgressWorkoutExercise userProgressWorkoutExercise)
+        {
+            var firstDone = userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.First().IsCompleted;
+            userProgressWorkoutExercise.UserProgressWorkoutExerciseSets.AsParallel().ForAll(x =>
+            {
+                x.IsCompleted = !firstDone;
+            });
+            _ = Save();
+            await Task.CompletedTask;
         }
     }
 }

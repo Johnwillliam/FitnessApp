@@ -1,5 +1,6 @@
 ﻿using EntityFramework.Context;
 using EntityFramework.Entities;
+using Logic;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessApp.Data
@@ -8,7 +9,9 @@ namespace FitnessApp.Data
     {
         public Task<List<FavoriteExercise>> GetByUser(User user)
         {
-            return Task.FromResult(new FitnessAppContext().FavoriteExercises.Include(x => x.ExerciseDescription).Where(x => x.UserId == user.Id).ToList());
+            var favoriteExercises = new FitnessAppContext().FavoriteExercises.Include(x => x.ExerciseDescription).Where(x => x.UserId == user.Id).ToList();
+            favoriteExercises.AsParallel().ForAll(FavoriteExercisesLogic.CalculateMaxWeight);
+            return Task.FromResult(favoriteExercises);
         }
 
         public void Remove(FavoriteExercise favorite)
